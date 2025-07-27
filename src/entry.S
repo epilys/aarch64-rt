@@ -10,6 +10,12 @@
     add \reg, \reg, :lo12:\sym
 .endm
 
+.macro adr_a reg:req, sym:req
+	movz	\reg, :abs_g2:\sym
+	movk	\reg, :abs_g1_nc:\sym
+	movk	\reg, :abs_g0_nc:\sym
+.endm
+
 /* 4kB pages */
 .equ PAGE_SHIFT,            12
 
@@ -48,6 +54,18 @@
 
 .global entry
 entry:
+    /* First, copy image from the address it was loaded into to the address it was linked to */
+    adr_l	x4, entry         /* Where it was loaded */
+    adr_a	x5, entry         /* Where it was linked */
+    adr_a	x6, bin_end          /* End of image */
+0:
+    ldr	x7, [x4]
+    add x4, x4, #8
+    str	x7, [x5]
+    add x5, x5, #8
+    cmp	x5, x6
+    b.lo	0b
+    /* Done copying */
 
     bl enable_mmu
 
@@ -58,19 +76,20 @@ entry:
     isb
 
     /* Zero out the bss section. */
-    adr_l x29, bss_begin
-    adr_l x30, bss_end
+    adr_a x29, bss_begin
+    adr_a x30, bss_end
 0:  cmp x29, x30
     b.hs 1f
     stp xzr, xzr, [x29], #16
     b 0b
 
 1:  /* Prepare the stack. */
-    adr_l x30, boot_stack_end
+    adr_a x30, boot_stack_end
     mov sp, x30
 
     /* Call into Rust code. */
-    b rust_entry
+    adr_a x7, rust_entry
+    br x7
 
 /**
  * Entry point for secondary cores.

@@ -54,6 +54,7 @@ SECTIONS
 	} >image
 
 	/* Everything beyond this point will not be included in the binary. */
+	. = ALIGN(8);
 	bin_end = .;
 
 	/* The entry point code assumes that .bss is 16-byte aligned. */
