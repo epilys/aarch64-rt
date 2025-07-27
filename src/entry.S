@@ -10,6 +10,15 @@
     add \reg, \reg, :lo12:\sym
 .endm
 
+/* 4kB pages */
+.equ PAGE_SHIFT,            12
+
+/* 1 if BE, 0 if LE */
+.equ HEAD_FLAG_ENDIANNESS,  0
+.equ HEAD_FLAG_PAGE_SIZE,   ((PAGE_SHIFT - 10) / 2)
+.equ HEAD_FLAG_PHYS_BASE,   1
+.equ HEAD_FLAGS,            ((HEAD_FLAG_ENDIANNESS << 0) | (HEAD_FLAG_PAGE_SIZE << 1) | (HEAD_FLAG_PHYS_BASE << 3))
+
 /**
  * This is a generic entry point for an image. It carries out the operations required to prepare the
  * loaded image to be run. Specifically, it zeroes the bss section using registers x25 and above,
@@ -17,8 +26,29 @@
  * for the Rust entry point, as these may contain boot parameters.
  */
 .section .init.entry, "ax"
+  /*
+   * This header follows the AArch64 Linux kernel image header [1] to load
+   * as a PE binary by the hypervisor.
+   *
+   * [1] https://docs.kernel.org/arch/arm64/booting.html
+   */
+  add x13, x18, #0x16      /* code0: UEFI "MZ" signature magic instruction */
+  b entry          /* code1 */
+
+  .quad 0x80000       /* text_offset */
+  .quad bin_end - entry  /* image_size */
+  .quad HEAD_FLAGS                /* flags */
+  .quad 0                 /* res2 */
+  .quad 0                 /* res3 */
+  .quad 0                 /* res4 */
+
+  .long 0x644d5241        /* "ARM\x64" magic number */
+  .long 0                 /* res5 */
+  .align 3
+
 .global entry
 entry:
+
     bl enable_mmu
 
     /* Disable trapping floating point access in EL1. */
