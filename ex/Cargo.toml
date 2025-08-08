@@ -1,0 +1,12 @@
+[package]
+name = "ex"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+aarch64-rt = { version = "0.2.2", path = "..", features = ["relocate"] }
+aarch64-paging = { version = "0.10.0", default-features = false }
+arm-pl011-uart = "0.3.1"
+smccc = "0.2.2"
+
+[workspace]

@@ -1,0 +1,5 @@
+[target."aarch64-unknown-none"]
+rustflags = [
+  "-C", "relocation-model=pie",
+  "-C", "link-args=-z notext",
+]
